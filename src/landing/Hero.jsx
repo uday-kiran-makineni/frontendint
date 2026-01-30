@@ -54,7 +54,7 @@ const Hero = () => {
             </div>
             
             {/* Hero content */}
-            <div className={styles.heroContent}>
+            <div className={styles.heroContent}> {}
                 <h2>{content[currentContent].title}</h2>
                 <h1>Plan today. Prosper tomorrow.</h1>
                 <p>{content[currentContent].description}</p>

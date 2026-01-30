@@ -94,7 +94,6 @@ function LifeInsurance() {
 
   const handleSubmit = async (e) => {
     e.preventDefault();
-    if (validateForm()) {
       try {
         const response = await axios.post('http://localhost:8081/api/lifeinsurance/create', formData, {
           auth: {
@@ -106,7 +105,6 @@ function LifeInsurance() {
         
         // Clear the form data
         setFormData({
-          policyNumber: "",
           agentId: "",
           agentEmail: "",
           userId: "",
@@ -133,9 +131,6 @@ function LifeInsurance() {
         // Handle error (e.g., show error message to user)
         alert("There was an error creating the policy. Please try again.");
       }
-    } else {
-      console.log("Form has errors. Please correct them.");
-    }
   };
 
   return (
@@ -155,17 +150,6 @@ function LifeInsurance() {
           <option value="Universal Life">Universal Life</option>
         </select>
         {errors.policyType && <span style={{ color: 'red' }}>{errors.policyType}</span>}
-        <br />
-
-        <label>Policy Number</label><span style={{ color: 'red' }}>*</span>
-        <input 
-          type="text" 
-          name="policyNumber" 
-          value={formData.policyNumber} 
-          onChange={handleChange} 
-          placeholder="Policy Number" 
-        />
-        {errors.policyNumber && <span style={{ color: 'red' }}>{errors.policyNumber}</span>}
         <br />
 
         <label>Coverage Amount</label><span style={{ color: 'red' }}>*</span>
