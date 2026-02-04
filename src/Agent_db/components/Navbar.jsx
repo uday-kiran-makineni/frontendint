@@ -1,8 +1,28 @@
-import PropTypes from 'prop-types'; // Import PropTypes
-import { NavLink } from 'react-router-dom';
+import { NavLink, useNavigate } from 'react-router-dom';
 import styles from '../styles/Navbar.module.css';
 
-const Navbar = ({ onLogout }) => {
+const Navbar = () => {
+  const navigate = useNavigate();
+
+  const handleLogout = () => {
+    // Clear all stored data from localStorage
+    localStorage.removeItem('username');
+    localStorage.removeItem('userRoles');
+    localStorage.removeItem('userId');
+    localStorage.removeItem('password');
+    localStorage.removeItem('totalHealthPolicies');
+    localStorage.removeItem('totalHealthPremium');
+    localStorage.removeItem('totalLifePolicies');
+    localStorage.removeItem('totalLifePremium');
+    localStorage.removeItem('totalMotorPolicies');
+    localStorage.removeItem('totalMotorPremium');
+    localStorage.removeItem('totalTravelPolicies');
+    localStorage.removeItem('totalTravelPremium');
+    
+    // Redirect to login page
+    navigate('/Login');
+  };
+
   return (
     <nav className={styles.navbar} aria-label="Primary Navigation">
       <div className={styles.logo}>
@@ -13,7 +33,7 @@ const Navbar = ({ onLogout }) => {
       <div className={styles.logout}>
         <button 
           className={styles.logoutButton} 
-          onClick={onLogout} 
+          onClick={handleLogout} 
           aria-label="Logout" 
         >
           Logout
@@ -21,11 +41,6 @@ const Navbar = ({ onLogout }) => {
       </div>
     </nav>
   );
-};
-
-// Add PropTypes for validation
-Navbar.propTypes = {
-  onLogout: PropTypes.func.isRequired,
 };
 
 export default Navbar;

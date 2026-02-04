@@ -1,174 +1,92 @@
-import React, { useState, useRef } from 'react';
-import './chatbot.css'; // Assuming your CSS file is named chatbot.css
+import React, { useState, useRef, useEffect } from 'react';
+import axios from 'axios';
+import './chatbot.css';
+
+const CHATBOT_API_URL = 'https://chatbot.sidharthareddy.me/api/insurance/chat';
 
 const MassMutualChatbot = () => {
-    const [messages, setMessages] = useState([]);
+    const [messages, setMessages] = useState([
+        { 
+            text: "Hello! I'm MutualBot, your insurance assistant. I can help you with questions about your policies, claims, coverage details, and more. How can I assist you today?", 
+            type: 'bot' 
+        }
+    ]);
     const [userInput, setUserInput] = useState('');
-    const [isLoggedIn, setIsLoggedIn] = useState(false);
-    const [currentStep, setCurrentStep] = useState(null);
-    const [selectedPolicyType, setSelectedPolicyType] = useState(null);
-    const [selectedOperation, setSelectedOperation] = useState(null);
+    const [isLoading, setIsLoading] = useState(false);
     const chatBodyRef = useRef(null);
-    const [chatVisible, setChatVisible] = useState(false); // State to manage chat visibility
+    const [chatVisible, setChatVisible] = useState(false);
 
-    const submitQuery = () => {
+    // Scroll to bottom when messages change
+    useEffect(() => {
+        scrollToBottom();
+    }, [messages]);
+
+    const submitQuery = async () => {
         const trimmedInput = userInput.trim();
-        if (trimmedInput === "") return;
+        if (trimmedInput === "" || isLoading) return;
 
+        // Add user message to chat
         setMessages((prevMessages) => [
             ...prevMessages,
             { text: trimmedInput, type: 'user' }
         ]);
 
-        if (trimmedInput.toLowerCase() === 'back') {
-            restartConversation();
-            return;
-        }
-
-        let botResponse = "";
-
-        if (isLoggedIn) {
-            switch (currentStep) {
-                case null:
-                    botResponse = "Please select your insurance type: Health, Life, Motor, Travel";
-                    setCurrentStep("insuranceType");
-                    break;
-
-                case "insuranceType":
-                    if (["health", "life", "motor", "travel"].includes(trimmedInput.toLowerCase())) {
-                        setSelectedPolicyType(trimmedInput);
-                        botResponse = "Please select your operation: View Your Policy, Buy new Policy, Update existing Policy";
-                        setCurrentStep("operation");
-                    } else {
-                        botResponse = "Invalid insurance type. Please select Health, Life, Motor, or Travel.";
-                    }
-                    break;
-
-                case "operation":
-                    if (["view your policy", "buy new policy", "update existing policy"].includes(trimmedInput.toLowerCase())) {
-                        setSelectedOperation(trimmedInput.toLowerCase());
-                        if (trimmedInput.toLowerCase() === "buy new policy") {
-                            botResponse = "Thanks for your interest. Our team will contact you shortly.";
-                            setCurrentStep(null); // End conversation
-                        } else {
-                            botResponse = "Please enter your Policy ID.";
-                            setCurrentStep("enterPolicyID");
-                        }
-                    } else {
-                        botResponse = "Invalid operation. Please select View Your Policy, Buy new Policy, or Update existing Policy.";
-                    }
-                    break;
-
-                case "enterPolicyID":
-                    if (validatePolicyID(trimmedInput)) {
-                        if (selectedOperation === "view your policy") {
-                            displayPolicyDetails();
-                            setCurrentStep(null); // End conversation after display
-                        } else if (selectedOperation === "update existing policy") {
-                            displayFullPolicyDetails();
-                            botResponse = "Which field would you like to update?";
-                            setCurrentStep("updateField");
-                        }
-                    } else {
-                        botResponse = "Invalid Policy ID. It should be 5 characters long and start with 'HP'.";
-                    }
-                    break;
-
-                case "updateField":
-                    const fieldsToUpdate = ["agent id", "email", "mobile number", "payment frequency", "sub policy type"];
-                    if (fieldsToUpdate.includes(trimmedInput.toLowerCase())) {
-                        botResponse = `Please enter new value for ${trimmedInput}.`;
-                        setCurrentStep("enterNewValue");
-                    } else {
-                        botResponse = `Invalid field. Please select one of the following to update: ${fieldsToUpdate.join(', ')}.`;
-                    }
-                    break;
-
-                case "enterNewValue":
-                    botResponse = "Details updated successfully!";
-                    displayUpdatedPolicyDetails(trimmedInput);
-                    setCurrentStep(null); // End conversation after update
-                    break;
-
-                default:
-                    break;
-            }
-        } else {
-            botResponse = "Please login first to discuss.";
-            openLoginPopup(); // Open login popup
-        }
-
-        setMessages((prevMessages) => [
-            ...prevMessages,
-            { text: botResponse, type: 'bot' }
-        ]);
-
         setUserInput("");
-        scrollToBottom();
-    };
+        setIsLoading(true);
 
-    const validatePolicyID = (policyID) => {
-        return policyID.length === 5 && policyID.startsWith('HP');
-    };
+        try {
+            // Call the chatbot API
+            const response = await axios.post(CHATBOT_API_URL, {
+                prompt: trimmedInput
+            }, {
+                headers: {
+                    'Content-Type': 'application/json'
+                }
+            });
 
-    const displayPolicyDetails = () => {
-        const policyDetails = `
-            Policy Status: Active<br>
-            Policy Type: ${capitalizeFirstLetter(selectedPolicyType)}<br>
-            Coverage Amount: $100,000<br>
-            Claim Limit: $20,000<br>
-            Start Date: 01-Jan-2022<br>
-            End Date: 01-Jan-2027
-        `;
-        addBotMessage(policyDetails);
-    };
+            // Extract the response from the API
+            let botResponse = "";
+            if (response.data) {
+                // Handle different possible response formats
+                if (typeof response.data === 'string') {
+                    botResponse = response.data;
+                } else if (response.data.response) {
+                    botResponse = response.data.response;
+                } else if (response.data.message) {
+                    botResponse = response.data.message;
+                } else if (response.data.answer) {
+                    botResponse = response.data.answer;
+                } else if (response.data.text) {
+                    botResponse = response.data.text;
+                } else {
+                    // If response structure is different, stringify it
+                    botResponse = JSON.stringify(response.data);
+                }
+            } else {
+                botResponse = "I apologize, but I couldn't process your request. Please try again.";
+            }
 
-    const displayFullPolicyDetails = () => {
-        const fullDetails = `
-            Policy Status: Active<br>
-            Policy Type: ${capitalizeFirstLetter(selectedPolicyType)}<br>
-            Coverage Amount: $100,000<br>
-            Claim Limit: $20,000<br>
-            Start Date: 01-Jan-2022<br>
-            End Date: 01-Jan-2027<br>
-            Agent ID: 12345<br>
-            Agent Email: agent@example.com<br>
-            Mobile Number: 9876543210<br>
-            Payment Frequency: Monthly<br>
-            Sub Policy Type: Individual<br>
-            User Email: user@example.com
-        `;
-        addBotMessage(fullDetails);
-    };
-
-    const displayUpdatedPolicyDetails = (newValue) => {
-        const updatedDetails = `
-            Policy Status: Active<br>
-            Policy Type: ${capitalizeFirstLetter(selectedPolicyType)}<br>
-            Coverage Amount: $100,000<br>
-            Claim Limit: $20,000<br>
-            Start Date: 01-Jan-2022<br>
-            End Date: 01-Jan-2027<br>
-            Agent ID: 12345<br>
-            Agent Email: updated_agent@example.com (Updated)<br>
-            Mobile Number: 9876543210<br>
-            Payment Frequency: Monthly<br>
-            Sub Policy Type: Individual<br>
-            User Email: user@example.com
-        `;
-        addBotMessage(updatedDetails);
-    };
-
-    const restartConversation = () => {
-        addBotMessage("Please select your insurance type: Health, Life, Motor, Travel");
-        setCurrentStep("insuranceType");
-        setSelectedPolicyType(null);
-        setSelectedOperation(null);
-        setUserInput(""); // Clear input
-    };
-
-    const capitalizeFirstLetter = (string) => {
-        return string.charAt(0).toUpperCase() + string.slice(1).toLowerCase();
+            addBotMessage(botResponse);
+        } catch (error) {
+            console.error('Chatbot API Error:', error);
+            
+            let errorMessage = "I apologize, but I'm having trouble connecting to the server. Please try again later.";
+            
+            if (error.response) {
+                // Server responded with error status
+                if (error.response.status === 429) {
+                    errorMessage = "I'm receiving too many requests right now. Please wait a moment and try again.";
+                } else if (error.response.status === 503) {
+                    errorMessage = "The service is temporarily unavailable. Please try again in a few minutes.";
+                }
+            } else if (error.code === 'ECONNABORTED') {
+                errorMessage = "The request timed out. Please try again.";
+            }
+            
+            addBotMessage(errorMessage);
+        } finally {
+            setIsLoading(false);
+        }
     };
 
     const addBotMessage = (message) => {
@@ -176,7 +94,6 @@ const MassMutualChatbot = () => {
             ...prevMessages,
             { text: message, type: 'bot' }
         ]);
-        scrollToBottom();
     };
 
     const scrollToBottom = () => {
@@ -196,29 +113,13 @@ const MassMutualChatbot = () => {
         }
     };
 
-    const [loginVisible, setLoginVisible] = useState(false);
-
-    const openLoginPopup = () => {
-        setLoginVisible(true);
-    };
-
-    const closeLoginPopup = () => {
-        setLoginVisible(false);
-    };
-
-    const login = () => {
-        const username = document.getElementById('username').value;
-        const password = document.getElementById('password').value;
-
-        if (username.trim() && password.trim()) {
-            setIsLoggedIn(true);
-            closeLoginPopup();
-            addBotMessage("Login successful. You may now continue your query.");
-            setCurrentStep(null); // Reset to start flow
-            submitQuery(); // Start from the first step (insurance type)
-        } else {
-            alert('Please enter both username and password.');
-        }
+    const clearChat = () => {
+        setMessages([
+            { 
+                text: "Hello! I'm MutualBot, your insurance assistant. I can help you with questions about your policies, claims, coverage details, and more. How can I assist you today?", 
+                type: 'bot' 
+            }
+        ]);
     };
 
     return (
@@ -234,13 +135,23 @@ const MassMutualChatbot = () => {
             <div className="chat-container">
             <div className="chat-header">
                  MutualBot
-                <button 
-                    className="close-btn" 
-                    onClick={() => setChatVisible(false)} 
-                    aria-label="Close chat"
-                >
-                    ✖
-                </button>
+                <div className="header-buttons">
+                    <button 
+                        className="clear-btn" 
+                        onClick={clearChat} 
+                        aria-label="Clear chat"
+                        title="Clear chat"
+                    >
+                        🗑️
+                    </button>
+                    <button 
+                        className="close-btn" 
+                        onClick={() => setChatVisible(false)} 
+                        aria-label="Close chat"
+                    >
+                        ✖
+                    </button>
+                </div>
             </div>
             <div className="chat-body" ref={chatBodyRef}>
                 {messages.map((msg, index) => (
@@ -248,34 +159,31 @@ const MassMutualChatbot = () => {
                         <div dangerouslySetInnerHTML={{ __html: msg.text }} />
                     </div>
                 ))}
+                {isLoading && (
+                    <div className="bot-message typing-indicator">
+                        <span></span>
+                        <span></span>
+                        <span></span>
+                    </div>
+                )}
             </div>
             <div className="chat-input">
                 <input
                     type="text"
                     value={userInput}
-                    placeholder="Type your query..."
+                    placeholder="Ask about policies, claims, coverage..."
                     onChange={handleInputChange}
                     onKeyPress={handleKeyPress}
+                    disabled={isLoading}
                 />
-                <button onClick={submitQuery}>Send</button>
+                <button onClick={submitQuery} disabled={isLoading}>
+                    {isLoading ? '...' : 'Send'}
+                </button>
             </div>
         </div>
         
             )
             }
-
-            {/* Login Popup */}
-            {loginVisible && (
-                <div className="login-popup">
-                    <div className="login-content">
-                        <h2>Login</h2>
-                        <input type="text" id="username" placeholder="Username" />
-                        <input type="password" id="password" placeholder="Password" />
-                        <button onClick={login}>Login</button>
-                        <button onClick={closeLoginPopup}>Cancel</button>
-                    </div>
-                </div>
-            )}
         </div>
     );
 };

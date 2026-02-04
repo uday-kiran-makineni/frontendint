@@ -1,10 +1,25 @@
 import React, { useState } from 'react';
 import axios from 'axios';
+import CryptoJS from 'crypto-js';
+
+const secretKey = 'your-secret-key';
 
 const LifeInsuranceDelete = () => {
     const [policyNumber, setPolicyNumber] = useState('');
     const [message, setMessage] = useState('');
     const [error, setError] = useState('');
+
+    // Get credentials from localStorage
+    const getAuthCredentials = () => {
+        const username = localStorage.getItem('username');
+        const encryptedPassword = localStorage.getItem('password');
+        if (username && encryptedPassword) {
+            const bytes = CryptoJS.AES.decrypt(encryptedPassword, secretKey);
+            const decryptedPassword = bytes.toString(CryptoJS.enc.Utf8);
+            return { username, password: decryptedPassword };
+        }
+        return { username: '', password: '' };
+    };
 
     const handleDelete = async (e) => {
         e.preventDefault();
@@ -17,19 +32,26 @@ const LifeInsuranceDelete = () => {
         }
 
         try {
+            const { username, password } = getAuthCredentials();
             const response = await axios.delete(`http://localhost:8081/api/lifeinsurance/delete/${policyNumber}`, {
-                auth: {
-                    username: 'user', // replace with your username
-                    password: 'user'  // replace with your password
+                headers: {
+                    'Authorization': 'Basic ' + btoa(`${username}:${password}`)
                 }
             });
 
             if (response.status === 200) {
                 setMessage(`Policy deleted successfully: ${policyNumber}`);
+                setPolicyNumber(''); // Clear the input
             }
         } catch (error) {
             console.error("Error deleting policy:", error);
-            setError("Only admin can delete a policy.");
+            if (error.response && error.response.status === 403) {
+                setError("You don't have permission to delete this policy.");
+            } else if (error.response && error.response.status === 404) {
+                setError("Policy not found.");
+            } else {
+                setError("Error deleting policy. Please try again.");
+            }
         }
     };
 

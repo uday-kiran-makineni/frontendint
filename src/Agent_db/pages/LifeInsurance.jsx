@@ -1,6 +1,9 @@
 import React, { useState, useEffect } from "react";
 import styles from '../styles/AddPolicy.module.css';
 import axios from "axios";
+import CryptoJS from 'crypto-js';
+
+const secretKey = 'your-secret-key';
 
 function LifeInsurance() {
   const [formData, setFormData] = useState({
@@ -25,18 +28,28 @@ function LifeInsurance() {
 
   const [errors, setErrors] = useState({});
 
+  // Get credentials from localStorage
+  const getAuthCredentials = () => {
+    const username = localStorage.getItem('username');
+    const encryptedPassword = localStorage.getItem('password');
+    if (username && encryptedPassword) {
+      const bytes = CryptoJS.AES.decrypt(encryptedPassword, secretKey);
+      const decryptedPassword = bytes.toString(CryptoJS.enc.Utf8);
+      return { username, password: decryptedPassword };
+    }
+    return { username: '', password: '' };
+  };
+
   useEffect(() => {
-    const storedAgentId = localStorage.getItem('agentId');
-    const storedAgentEmail = localStorage.getItem('agentEmail'); // Add this line to get agent email
+    const storedAgentId = localStorage.getItem('userId');
+    const storedAgentEmail = localStorage.getItem('agentEmail');
 
     if (storedAgentId) {
       setFormData(prevState => ({
         ...prevState,
         agentId: storedAgentId,
-        agentEmail: storedAgentEmail || "" // Set agent email if available
+        agentEmail: storedAgentEmail || ""
       }));
-    } else {
-      console.error('AgentId not found in local storage');
     }
   }, []);
 
@@ -95,10 +108,10 @@ function LifeInsurance() {
   const handleSubmit = async (e) => {
     e.preventDefault();
       try {
+        const { username, password } = getAuthCredentials();
         const response = await axios.post('http://localhost:8081/api/lifeinsurance/create', formData, {
-          auth: {
-            username: 'user',
-            password: 'user'
+          headers: {
+            'Authorization': 'Basic ' + btoa(`${username}:${password}`)
           }
         });
         console.log('Form submitted successfully:', response.data);

@@ -1,6 +1,9 @@
 import React, { useState, useEffect } from 'react';
 import axios from 'axios';
+import CryptoJS from 'crypto-js';
 import './HealthInsuranceForm.css';
+
+const secretKey = 'your-secret-key';
 
 const HealthInsuranceForm = () => {
     const [policyNumber, setPolicyNumber] = useState('');
@@ -24,12 +27,25 @@ const HealthInsuranceForm = () => {
     const [message, setMessage] = useState('');
     const [errors, setErrors] = useState({});
 
+    // Get credentials from localStorage
+    const getAuthCredentials = () => {
+        const username = localStorage.getItem('username');
+        const encryptedPassword = localStorage.getItem('password');
+        if (username && encryptedPassword) {
+            const bytes = CryptoJS.AES.decrypt(encryptedPassword, secretKey);
+            const decryptedPassword = bytes.toString(CryptoJS.enc.Utf8);
+            return { username, password: decryptedPassword };
+        }
+        return { username: '', password: '' };
+    };
+
     // Function to fetch policy details
     const fetchPolicyDetails = async () => {
         try {
+            const { username, password } = getAuthCredentials();
             const response = await axios.get(`http://localhost:8081/api/healthpolicies/${policyNumber}`, {
                 headers: {
-                    'Authorization': 'Basic ' + btoa('user:user')
+                    'Authorization': 'Basic ' + btoa(`${username}:${password}`)
                 }
             });
             setFormData(response.data);
@@ -78,12 +94,13 @@ const HealthInsuranceForm = () => {
         }
 
         try {
+            const { username, password } = getAuthCredentials();
             const response = await axios.put(
                 `http://localhost:8081/api/healthpolicies/update/${formData.policyNumber}`,
                 formData,
                 {
                     headers: {
-                        'Authorization': 'Basic ' + btoa('user:user'),
+                        'Authorization': 'Basic ' + btoa(`${username}:${password}`),
                         'Content-Type': 'application/json'
                     }
                 }

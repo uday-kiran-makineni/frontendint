@@ -1,14 +1,34 @@
 import  { useState } from 'react';
-import {Link} from 'react-router-dom';
+import {Link, useNavigate} from 'react-router-dom';
 import styles from './UserHeader.module.css';
 import logo from './assets/nobglogo.png'; // Import your logo image
 
 
 const UserHeader = () => {
     const [isDropdownOpen, setIsDropdownOpen] = useState(false);
+    const navigate = useNavigate();
 
     const toggleDropdown = () => {
         setIsDropdownOpen(!isDropdownOpen);
+    };
+
+    const handleLogout = () => {
+        // Clear all stored data from localStorage
+        localStorage.removeItem('username');
+        localStorage.removeItem('userRoles');
+        localStorage.removeItem('userId');
+        localStorage.removeItem('password');
+        localStorage.removeItem('totalHealthPolicies');
+        localStorage.removeItem('totalHealthPremium');
+        localStorage.removeItem('totalLifePolicies');
+        localStorage.removeItem('totalLifePremium');
+        localStorage.removeItem('totalMotorPolicies');
+        localStorage.removeItem('totalMotorPremium');
+        localStorage.removeItem('totalTravelPolicies');
+        localStorage.removeItem('totalTravelPremium');
+        
+        // Redirect to login page
+        navigate('/Login');
     };
 
     return (
@@ -34,7 +54,7 @@ const UserHeader = () => {
                         <ul>
                             <li><a href="#">Profile</a></li>
                             <li><a href="#">Settings</a></li>
-                            <li><a href="#">Log Out</a></li>
+                            <li><a href="#" onClick={handleLogout}>Log Out</a></li>
                         </ul>
                     </div>
                 )}

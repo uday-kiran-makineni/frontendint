@@ -1,7 +1,10 @@
 //HealthInsurance.jsx
 import React, { useState, useEffect } from "react";
 import axios from "axios";
+import CryptoJS from 'crypto-js';
 import styles from '../styles/AddPolicy.module.css';
+
+const secretKey = 'your-secret-key';
 
 function HealthInsurance() {
   const [formData, setFormData] = useState({
@@ -26,16 +29,25 @@ function HealthInsurance() {
 
   const [errors, setErrors] = useState({});
 
+  // Get credentials from localStorage
+  const getAuthCredentials = () => {
+    const username = localStorage.getItem('username');
+    const encryptedPassword = localStorage.getItem('password');
+    if (username && encryptedPassword) {
+      const bytes = CryptoJS.AES.decrypt(encryptedPassword, secretKey);
+      const decryptedPassword = bytes.toString(CryptoJS.enc.Utf8);
+      return { username, password: decryptedPassword };
+    }
+    return { username: '', password: '' };
+  };
+
   useEffect(() => {
-    const storedAgentId = localStorage.getItem('username');
+    const storedAgentId = localStorage.getItem('userId');
     if (storedAgentId) {
       setFormData(prevState => ({
         ...prevState,
         agentId: storedAgentId
       }));
-    } else {
-      console.error('AgentId not found in local storage');
-      // You might want to handle this case (e.g., redirect to login)
     }
   }, []);
 
@@ -101,12 +113,37 @@ function HealthInsurance() {
     e.preventDefault();
     if (validateForm()) {
       try {
-        const response = await axios.post('http://localhost:8081/api/healthpolicies', formData);
+        const { username, password } = getAuthCredentials();
+        const response = await axios.post('http://localhost:8081/api/healthpolicies', formData, {
+          headers: {
+            'Authorization': 'Basic ' + btoa(`${username}:${password}`)
+          }
+        });
         console.log('Form submitted successfully:', response.data);
-        // Handle successful submission (e.g., show success message, reset form, etc.)
+        alert('Policy created successfully!');
+        // Reset form after successful submission
+        setFormData({
+          policyNumber: "",
+          agentId: localStorage.getItem('userId') || "",
+          agentEmail: "",
+          userId: "",
+          userEmail: "",
+          mobileNumber: "",
+          startDate: "",
+          endDate: "",
+          premiumAmount: "",
+          coverageAmount: "",
+          paymentFrequency: "",
+          policyStatus: "",
+          beneficiaryDetails: "",
+          claimLimit: "",
+          policyType: "Individual",
+          termsAndConditions: "",
+          preExistingDiseases: ""
+        });
       } catch (error) {
         console.error('Error submitting form:', error);
-        // Handle submission error (e.g., show error message)
+        alert('Error creating policy. Please try again.');
       }
     } else {
       console.log("Form has errors. Please correct them.");

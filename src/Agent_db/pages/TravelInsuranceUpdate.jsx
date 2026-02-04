@@ -1,6 +1,9 @@
 import React, { useState } from "react";
 import axios from "axios";
+import CryptoJS from 'crypto-js';
 import styles from '../styles/UpdatePolicy.module.css';
+
+const secretKey = 'your-secret-key';
 
 function UpdateTravelInsurance() {
   const [policyNumber, setPolicyNumber] = useState("");
@@ -31,6 +34,18 @@ function UpdateTravelInsurance() {
   const [successMessage, setSuccessMessage] = useState("");
   const [errorMessage, setErrorMessage] = useState("");
 
+  // Get credentials from localStorage
+  const getAuthCredentials = () => {
+    const username = localStorage.getItem('username');
+    const encryptedPassword = localStorage.getItem('password');
+    if (username && encryptedPassword) {
+      const bytes = CryptoJS.AES.decrypt(encryptedPassword, secretKey);
+      const decryptedPassword = bytes.toString(CryptoJS.enc.Utf8);
+      return { username, password: decryptedPassword };
+    }
+    return { username: '', password: '' };
+  };
+
   const handleChange = (e) => {
     const { name, value } = e.target;
     setFormData((prevState) => ({
@@ -45,9 +60,10 @@ function UpdateTravelInsurance() {
 
   const fetchPolicyDetails = async () => {
     try {
+      const { username, password } = getAuthCredentials();
       const response = await axios.get(`http://localhost:8081/api/travelinsurances/policy/${policyNumber}`, {
         headers: {
-          'Authorization': 'Basic ' + btoa('agent:agent'),
+          'Authorization': 'Basic ' + btoa(`${username}:${password}`),
           'Content-Type': 'application/json',
         }
       });
@@ -112,9 +128,10 @@ function UpdateTravelInsurance() {
     e.preventDefault();
     if (validateForm()) {
       try {
+        const { username, password } = getAuthCredentials();
         const response = await axios.put(`http://localhost:8081/api/travelinsurances/${policyNumber}`, formData, {
           headers: {
-            'Authorization': 'Basic ' + btoa('agent:agent'),
+            'Authorization': 'Basic ' + btoa(`${username}:${password}`),
             'Content-Type': 'application/json',
           }
         });

@@ -1,6 +1,9 @@
 import React, { useState, useEffect } from "react";
 import styles from '../styles/AddPolicy.module.css';
 import axios from "axios";
+import CryptoJS from 'crypto-js';
+
+const secretKey = 'your-secret-key';
 
 function TravelInsurance() {
   const [formData, setFormData] = useState({
@@ -31,17 +34,27 @@ function TravelInsurance() {
   const [successMessage, setSuccessMessage] = useState("");
   const [errorMessage, setErrorMessage] = useState("");
 
+  // Get credentials from localStorage
+  const getAuthCredentials = () => {
+    const username = localStorage.getItem('username');
+    const encryptedPassword = localStorage.getItem('password');
+    if (username && encryptedPassword) {
+      const bytes = CryptoJS.AES.decrypt(encryptedPassword, secretKey);
+      const decryptedPassword = bytes.toString(CryptoJS.enc.Utf8);
+      return { username, password: decryptedPassword };
+    }
+    return { username: '', password: '' };
+  };
+
   useEffect(() => {
-    const storedAgentId = localStorage.getItem('agentId');
+    const storedAgentId = localStorage.getItem('userId');
     const storedAgentEmail = localStorage.getItem('agentEmail');
     if (storedAgentId) {
       setFormData(prevState => ({
         ...prevState,
         agentId: storedAgentId,
-        agentEmail: storedAgentEmail
+        agentEmail: storedAgentEmail || ""
       }));
-    } else {
-      console.error('AgentId not found in local storage');
     }
   }, []);
 
@@ -108,9 +121,10 @@ function TravelInsurance() {
     e.preventDefault();
     if (validateForm()) {
       try {
+        const { username, password } = getAuthCredentials();
         const response = await axios.post('http://localhost:8081/api/travelinsurances', formData, {
           headers: {
-            'Authorization': 'Basic ' + btoa('agent:agent'),
+            'Authorization': 'Basic ' + btoa(`${username}:${password}`),
             'Content-Type': 'application/json',
           }
         });

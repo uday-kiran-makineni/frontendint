@@ -1,41 +1,54 @@
 import React, { useState, useEffect } from "react";
 import axios from "axios";
+import CryptoJS from 'crypto-js';
 import styles from '../styles/AddPolicy.module.css';
+
+const secretKey = 'your-secret-key';
 
 function MotorInsurance() {
   const [formData, setFormData] = useState({
-    policyNumber: "MOTOR009",
+    policyNumber: "",
     agentId: "",
-    agentEmail: "agent4@insurance.com",
-    userId: "8",
-    userEmail: "user3@domain.com",
-    mobileNumber: "9123456789",
-    startDate: "2024-12-15",
-    endDate: "2025-12-15",
-    premiumAmount: "1500.00",
-    coverageAmount: "50000.00",
-    paymentFrequency: "Monthly",
+    agentEmail: "",
+    userId: "",
+    userEmail: "",
+    mobileNumber: "",
+    startDate: "",
+    endDate: "",
+    premiumAmount: "",
+    coverageAmount: "",
+    paymentFrequency: "",
     policyStatus: "Active",
-    vehicleMake: "Honda",
-    vehicleModel: "Civic",
-    vehicleRegistrationNumber: "ABC1234",
-    beneficiaryDetails: "Bob Johnson - Child",
-    termsAndConditions: "Covers damages from accidents.",
-    coverageDetails: "Third-party liability only."
+    vehicleMake: "",
+    vehicleModel: "",
+    vehicleRegistrationNumber: "",
+    beneficiaryDetails: "",
+    termsAndConditions: "",
+    coverageDetails: ""
   });
 
   const [errors, setErrors] = useState({});
   const [message, setMessage] = useState("");
 
+  // Get credentials from localStorage
+  const getAuthCredentials = () => {
+    const username = localStorage.getItem('username');
+    const encryptedPassword = localStorage.getItem('password');
+    if (username && encryptedPassword) {
+      const bytes = CryptoJS.AES.decrypt(encryptedPassword, secretKey);
+      const decryptedPassword = bytes.toString(CryptoJS.enc.Utf8);
+      return { username, password: decryptedPassword };
+    }
+    return { username: '', password: '' };
+  };
+
   useEffect(() => {
-    const storedAgentId = localStorage.getItem('agentId');
+    const storedAgentId = localStorage.getItem('userId');
     if (storedAgentId) {
       setFormData(prevState => ({
         ...prevState,
         agentId: storedAgentId
       }));
-    } else {
-      console.error('AgentId not found in local storage');
     }
   }, []);
 
@@ -95,17 +108,17 @@ function MotorInsurance() {
     e.preventDefault();
     if (validateForm()) {
       try {
+        const { username, password } = getAuthCredentials();
         const response = await axios.post('http://localhost:8081/api/motorinsurances', formData, {
-          auth: {
-            username: 'agent',
-            password: 'agent'
+          headers: {
+            'Authorization': 'Basic ' + btoa(`${username}:${password}`)
           }
         });
         console.log('Form submitted successfully:', response.data);
         setMessage("Policy created successfully!");
         setFormData({
           policyNumber: "",
-          agentId: "",
+          agentId: localStorage.getItem('userId') || "",
           agentEmail: "",
           userId: "",
           userEmail: "",

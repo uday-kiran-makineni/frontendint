@@ -1,6 +1,9 @@
 import React, { useState, useEffect } from "react";
 import styles from '../styles/AddPolicy.module.css';
 import axios from "axios";
+import CryptoJS from 'crypto-js';
+
+const secretKey = 'your-secret-key';
 
 function UpdateLifeInsurance() {
   const [formData, setFormData] = useState({
@@ -26,8 +29,20 @@ function UpdateLifeInsurance() {
   const [errors, setErrors] = useState({});
   const [policyNumber, setPolicyNumber] = useState("");
 
+  // Get credentials from localStorage
+  const getAuthCredentials = () => {
+    const username = localStorage.getItem('username');
+    const encryptedPassword = localStorage.getItem('password');
+    if (username && encryptedPassword) {
+      const bytes = CryptoJS.AES.decrypt(encryptedPassword, secretKey);
+      const decryptedPassword = bytes.toString(CryptoJS.enc.Utf8);
+      return { username, password: decryptedPassword };
+    }
+    return { username: '', password: '' };
+  };
+
   useEffect(() => {
-    const storedAgentId = localStorage.getItem('agentId');
+    const storedAgentId = localStorage.getItem('userId');
     const storedAgentEmail = localStorage.getItem('agentEmail');
 
     if (storedAgentId) {
@@ -36,8 +51,6 @@ function UpdateLifeInsurance() {
         agentId: storedAgentId,
         agentEmail: storedAgentEmail || ""
       }));
-    } else {
-      console.error('AgentId not found in local storage');
     }
   }, []);
 
@@ -87,10 +100,10 @@ function UpdateLifeInsurance() {
     e.preventDefault();
     if (validateForm()) {
       try {
+        const { username, password } = getAuthCredentials();
         const response = await axios.put(`http://localhost:8081/api/lifeinsurance/update/${policyNumber}`, formData, {
-          auth: {
-            username: 'user',
-            password: 'user'
+          headers: {
+            'Authorization': 'Basic ' + btoa(`${username}:${password}`)
           }
         });
         console.log('Policy updated successfully:', response.data);
@@ -130,10 +143,10 @@ function UpdateLifeInsurance() {
   const fetchPolicy = async () => {
     if (policyNumber) {
       try {
+        const { username, password } = getAuthCredentials();
         const response = await axios.get(`http://localhost:8081/api/lifeinsurance/${policyNumber}`, {
-          auth: {
-            username: 'user',
-            password: 'user'
+          headers: {
+            'Authorization': 'Basic ' + btoa(`${username}:${password}`)
           }
         });
         setFormData(response.data);

@@ -1,5 +1,8 @@
 import React, { useState } from "react";
 import axios from "axios";
+import CryptoJS from 'crypto-js';
+
+const secretKey = 'your-secret-key';
 
 const MotorInsuranceUpdate = () => {
     const [formData, setFormData] = useState({
@@ -24,6 +27,18 @@ const MotorInsuranceUpdate = () => {
     const [fetchError, setFetchError] = useState("");
     const { policyNumber } = formData;
 
+    // Get credentials from localStorage
+    const getAuthCredentials = () => {
+        const username = localStorage.getItem('username');
+        const encryptedPassword = localStorage.getItem('password');
+        if (username && encryptedPassword) {
+            const bytes = CryptoJS.AES.decrypt(encryptedPassword, secretKey);
+            const decryptedPassword = bytes.toString(CryptoJS.enc.Utf8);
+            return { username, password: decryptedPassword };
+        }
+        return { username: '', password: '' };
+    };
+
     const handleChange = (e) => {
         const { name, value } = e.target;
         setFormData({ ...formData, [name]: value });
@@ -37,10 +52,10 @@ const MotorInsuranceUpdate = () => {
         }
 
         try {
+            const { username, password } = getAuthCredentials();
             const response = await axios.get(`http://localhost:8081/api/motorinsurances/${policyNumber}`, {
-                auth: {
-                    username: 'user',
-                    password: 'user'
+                headers: {
+                    'Authorization': 'Basic ' + btoa(`${username}:${password}`)
                 }
             });
             console.log("Policy data fetched successfully:", response.data);
@@ -72,13 +87,13 @@ const MotorInsuranceUpdate = () => {
         e.preventDefault();
         if (validateForm()) {
             try {
-                console.log(`Sending update request to: http://localhost:8081/api/motorinsurances/update/${policyNumber}`);
+                const { username, password } = getAuthCredentials();
+                console.log(`Sending update request to: http://localhost:8081/api/motorinsurances/${policyNumber}`);
                 console.log("Form Data:", formData);
 
-                const response = await axios.put(`http://localhost:8081/api/motorinsurances/update/${policyNumber}`, formData, {
-                    auth: {
-                        username: 'user',
-                        password: 'user'
+                const response = await axios.put(`http://localhost:8081/api/motorinsurances/${policyNumber}`, formData, {
+                    headers: {
+                        'Authorization': 'Basic ' + btoa(`${username}:${password}`)
                     }
                 });
 
