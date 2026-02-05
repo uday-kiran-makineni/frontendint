@@ -2,7 +2,7 @@ import React, { useState, useRef, useEffect } from 'react';
 import axios from 'axios';
 import './chatbot.css';
 
-const CHATBOT_API_URL = 'https://chatbot.sidharthareddy.me/api/insurance/chat';
+const CHATBOT_API_URL = import.meta.env.VITE_CHATBOT_API_URL || 'https://chatbot.sidharthareddy.me/api/insurance/chat';
 
 const MassMutualChatbot = () => {
     const [messages, setMessages] = useState([
